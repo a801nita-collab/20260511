@@ -4,16 +4,17 @@ let handPose;
 let faces = [];
 let hands = [];
 let earringImages = []; // 儲存多張耳環圖片的陣列
-let currentEarringIndex = 0; // 目前顯示的耳環索引 (0 代表 1 根手指，以此類推)
+let currentEarringIndex = 1;  
+let fingerCount = 1// 用於儲存當前手指數量，以便在畫面上顯示
 
 // preload() 函式會在 setup() 之前執行，用於載入外部資源
 function preload() {
   // 載入 5 張耳環圖片
-  earringImages[0] = loadImage('圖片/acc1_ring.png');
-  earringImages[1] = loadImage('圖片/acc2_pearl.png');
-  earringImages[2] = loadImage('圖片/acc3_tassel.png');
-  earringImages[3] = loadImage('圖片/acc4_jade.png');
-  earringImages[4] = loadImage('圖片/acc5_phoenix.png');
+  earringImages[1] = loadImage('圖片/acc1_ring.png');
+  earringImages[2] = loadImage('圖片/acc2_pearl.png');
+  earringImages[3] = loadImage('圖片/acc3_tassel.png');
+  earringImages[4] = loadImage('圖片/acc4_jade.png');
+  earringImages[5] = loadImage('圖片/acc5_phoenix.png');
 }
 
 function setup() {
@@ -99,6 +100,14 @@ function draw() {
     }
   }
   pop();
+
+  // 繪製 UI 文字：顯示目前偵測到的手指數量
+  fill(255, 255, 0); // 黃色文字
+  stroke(0); // 黑色外框增加文字清晰度
+  strokeWeight(4);
+  textSize(48);
+  textAlign(LEFT, TOP);
+  text(`偵測手指數量: ${fingerCount}`, 40, 40);
 }
 
 function updateEarringSelection() {
@@ -125,10 +134,14 @@ function updateEarringSelection() {
                      dist(hand.keypoints[3].x, hand.keypoints[3].y, hand.keypoints[9].x, hand.keypoints[9].y);
     if (thumbIsOut) count++;
 
+    fingerCount = count; // 更新全域變數供 draw() 使用
+
     // 如果偵測到 1-5 根手指，則更新目前顯示的圖片索引
     if (count >= 1 && count <= 5) {
       currentEarringIndex = count - 1;
     }
+  } else {
+    fingerCount = 0; // 畫面中沒有手時，數量重設為 0
   }
 }
 
