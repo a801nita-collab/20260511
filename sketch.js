@@ -5,7 +5,7 @@ let earringImage; // 宣告耳環圖片變數
 
 // preload() 函式會在 setup() 之前執行，用於載入外部資源
 function preload() {
-  earringImage = loadImage('pic/acc1_ring.png'); // 載入耳環圖片，請確保 'pic/acc1_ring.png' 路徑正確
+  earringImage = loadImage('圖片/acc1_ring.png'); // 載入耳環圖片，路徑已修正為 '圖片/acc1_ring.png'
 }
 
 function setup() {
@@ -51,6 +51,7 @@ function draw() {
   scale(-1, 1);
 
   // 繪製影像，起始點設為 (0, 0)
+  imageMode(CORNER); // 確保攝影機影像從左上角開始繪製
   image(capture, 0, 0, displayW, displayH);
 
   // 如果辨識到臉部，則繪製耳垂位置
@@ -63,17 +64,21 @@ function draw() {
       let rightLobe = face.keypoints[177];
       let leftLobe = face.keypoints[401];
 
-      fill(255, 255, 0); // 黃色
-      noStroke();
-
       // 將辨識座標從攝影機解析度對應到畫布上的顯示尺寸
       let rx = map(rightLobe.x, 0, capture.width, 0, displayW);
       let ry = map(rightLobe.y, 0, capture.height, 0, displayH);
-      circle(rx, ry, 15);
-
       let lx = map(leftLobe.x, 0, capture.width, 0, displayW);
       let ly = map(leftLobe.y, 0, capture.height, 0, displayH);
-      circle(lx, ly, 15);
+
+      // 繪製耳環圖片
+      imageMode(CENTER);
+      let earringSize = displayW * 0.08; // 根據影像寬度自動調整耳環大小
+      
+      // 只有在圖片成功載入後才繪製
+      if (earringImage) {
+        image(earringImage, rx, ry, earringSize, earringSize);
+        image(earringImage, lx, ly, earringSize, earringSize);
+      }
     }
   }
   pop();
