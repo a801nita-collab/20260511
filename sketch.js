@@ -1,6 +1,12 @@
 let capture;
 let faceMesh;
 let faces = [];
+let earringImage; // 宣告耳環圖片變數
+
+// preload() 函式會在 setup() 之前執行，用於載入外部資源
+function preload() {
+  earringImage = loadImage('pic/acc1_ring.png'); // 載入耳環圖片，請確保 'pic/acc1_ring.png' 路徑正確
+}
 
 function setup() {
   // 建立填滿整個視窗的全螢幕畫布
