@@ -106,17 +106,24 @@ function updateEarringSelection() {
     let hand = hands[0];
     let count = 0;
 
-    // 簡單的食指到小指抬起偵測 (比較指尖與第二關節的 Y 座標)
-    // 8: 食指尖, 6: 食指第二關節
-    if (hand.keypoints[8].y < hand.keypoints[6].y) count++;
-    // 12: 中指尖, 10: 中指第二關節
-    if (hand.keypoints[12].y < hand.keypoints[10].y) count++;
-    // 16: 無名指尖, 14: 無名指第二關節
-    if (hand.keypoints[16].y < hand.keypoints[14].y) count++;
-    // 20: 小指尖, 18: 小指第二關節
-    if (hand.keypoints[20].y < hand.keypoints[18].y) count++;
-    // 4: 拇指尖 (拇指判定較複雜，這裡暫用簡單的高度判定)
-    if (hand.keypoints[4].y < hand.keypoints[3].y) count++;
+    // 辨識邏輯：比較指尖 (Tip) 與第三關節 (MCP) 的高度
+    // 在 p5 座標系中，Y 越小代表位置越高
+    
+    // 食指 (Index Finger)
+    if (hand.keypoints[8].y < hand.keypoints[5].y) count++;
+    // 中指 (Middle Finger)
+    if (hand.keypoints[12].y < hand.keypoints[9].y) count++;
+    // 無名指 (Ring Finger)
+    if (hand.keypoints[16].y < hand.keypoints[13].y) count++;
+    // 小指 (Pinky)
+    if (hand.keypoints[20].y < hand.keypoints[17].y) count++;
+    
+    // 拇指 (Thumb) 辨識邏輯：
+    // 拇指通常是水平伸展，所以改用與手掌中心 (或索引點 2) 的水平距離來判斷
+    // 這裡為了簡單直觀，判斷拇指尖與關節的相對位置
+    let thumbIsOut = dist(hand.keypoints[4].x, hand.keypoints[4].y, hand.keypoints[9].x, hand.keypoints[9].y) > 
+                     dist(hand.keypoints[3].x, hand.keypoints[3].y, hand.keypoints[9].x, hand.keypoints[9].y);
+    if (thumbIsOut) count++;
 
     // 如果手指數量在 1-5 之間，更新索引 (1根手指 -> index 0)
     if (count >= 1 && count <= 5) {
