@@ -138,7 +138,7 @@ function updateEarringSelection() {
 
     // 如果偵測到 1-5 根手指，則更新目前顯示的圖片索引
     if (count >= 1 && count <= 5) {
-      currentEarringIndex = count - 1;
+      currentEarringIndex = count;
     }
   } else {
     fingerCount = 0; // 畫面中沒有手時，數量重設為 0
