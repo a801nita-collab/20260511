@@ -11,7 +11,7 @@ function preload() {
   // 載入 5 張耳環圖片
   earringImages[0] = loadImage('圖片/acc1_ring.png');
   earringImages[1] = loadImage('圖片/acc2_pearl.png');
-  earringImages[2] = loadImage('圖片/acc3_acc3_tassel.png');
+  earringImages[2] = loadImage('圖片/acc3_tassel.png');
   earringImages[3] = loadImage('圖片/acc4_jade.png');
   earringImages[4] = loadImage('圖片/acc5_phoenix.png');
 }
