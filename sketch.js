@@ -1,11 +1,19 @@
 let capture;
 let faceMesh;
+let handPose;
 let faces = [];
-let earringImage; // 宣告耳環圖片變數
+let hands = [];
+let earringImages = []; // 儲存多張耳環圖片的陣列
+let currentEarringIndex = 0; // 目前顯示的耳環索引 (0 代表 1 根手指，以此類推)
 
 // preload() 函式會在 setup() 之前執行，用於載入外部資源
 function preload() {
-  earringImage = loadImage('圖片/acc1_ring.png'); // 載入耳環圖片，路徑已修正為 '圖片/acc1_ring.png'
+  // 載入 5 張耳環圖片
+  earringImages[0] = loadImage('圖片/acc1_ring.png');
+  earringImages[1] = loadImage('圖片/acc2_pearl.png');
+  earringImages[2] = loadImage('圖片/acc3_acc3_tassel.png');
+  earringImages[3] = loadImage('圖片/acc4_jade.png');
+  earringImages[4] = loadImage('圖片/acc5_phoenix.png');
 }
 
 function setup() {
@@ -19,16 +27,23 @@ function setup() {
 
   // 初始化 ml5 faceMesh 辨識模型 (v1 版本 API)
   faceMesh = ml5.faceMesh(capture, { maxFaces: 1 }, modelReady);
+
+  // 初始化 ml5 handPose 辨識模型
+  handPose = ml5.handPose(capture, { maxHands: 1 }, modelReady);
 }
 
 function modelReady() {
-  // 模型載入完成後開始偵測
+  // 當任一模型載入完成後，確保兩者都啟動偵測
   faceMesh.detectStart(capture, gotFaces);
+  handPose.detectStart(capture, gotHands);
 }
 
 function gotFaces(results) {
-  // 更新辨識結果
   faces = results;
+}
+
+function gotHands(results) {
+  hands = results;
 }
 
 function draw() {
@@ -54,8 +69,11 @@ function draw() {
   imageMode(CORNER); // 確保攝影機影像從左上角開始繪製
   image(capture, 0, 0, displayW, displayH);
 
+  // 檢查手勢並更新耳環索引
+  updateEarringSelection();
+
   // 如果辨識到臉部，則繪製耳垂位置
-  if (faces && faces.length > 0) {
+  if (faces && faces.length > 0 && earringImages[currentEarringIndex]) {
     let face = faces[0];
 
     // 確保關鍵點存在
@@ -74,14 +92,37 @@ function draw() {
       imageMode(CENTER);
       let earringSize = displayW * 0.08; // 根據影像寬度自動調整耳環大小
       
-      // 只有在圖片成功載入後才繪製
-      if (earringImage) {
-        image(earringImage, rx, ry, earringSize, earringSize);
-        image(earringImage, lx, ly, earringSize, earringSize);
-      }
+      // 繪製目前選擇的耳環圖片
+      let img = earringImages[currentEarringIndex];
+      image(img, rx, ry, earringSize, earringSize);
+      image(img, lx, ly, earringSize, earringSize);
     }
   }
   pop();
+}
+
+function updateEarringSelection() {
+  if (hands && hands.length > 0) {
+    let hand = hands[0];
+    let count = 0;
+
+    // 簡單的食指到小指抬起偵測 (比較指尖與第二關節的 Y 座標)
+    // 8: 食指尖, 6: 食指第二關節
+    if (hand.keypoints[8].y < hand.keypoints[6].y) count++;
+    // 12: 中指尖, 10: 中指第二關節
+    if (hand.keypoints[12].y < hand.keypoints[10].y) count++;
+    // 16: 無名指尖, 14: 無名指第二關節
+    if (hand.keypoints[16].y < hand.keypoints[14].y) count++;
+    // 20: 小指尖, 18: 小指第二關節
+    if (hand.keypoints[20].y < hand.keypoints[18].y) count++;
+    // 4: 拇指尖 (拇指判定較複雜，這裡暫用簡單的高度判定)
+    if (hand.keypoints[4].y < hand.keypoints[3].y) count++;
+
+    // 如果手指數量在 1-5 之間，更新索引 (1根手指 -> index 0)
+    if (count >= 1 && count <= 5) {
+      currentEarringIndex = count - 1;
+    }
+  }
 }
 
 function windowResized() {
