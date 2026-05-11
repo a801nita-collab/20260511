@@ -125,7 +125,7 @@ function updateEarringSelection() {
                      dist(hand.keypoints[3].x, hand.keypoints[3].y, hand.keypoints[9].x, hand.keypoints[9].y);
     if (thumbIsOut) count++;
 
-    // 如果手指數量在 1-5 之間，更新索引 (1根手指 -> index 0)
+    // 如果偵測到 1-5 根手指，則更新目前顯示的圖片索引
     if (count >= 1 && count <= 5) {
       currentEarringIndex = count - 1;
     }
