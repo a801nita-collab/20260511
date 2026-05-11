@@ -1,5 +1,5 @@
 let capture;
-let faceLandmarks;
+let faceMesh;
 let faces = [];
 
 function setup() {
@@ -11,13 +11,13 @@ function setup() {
   // 隱藏預設出現在畫布下方的 HTML5 影片元件，改在畫布內手動繪製
   capture.hide();
 
-  // 初始化 ml5 faceLandmarks 辨識模型
-  faceLandmarks = ml5.faceLandmarks(capture, { maxFaces: 1 }, modelReady);
+  // 初始化 ml5 faceMesh 辨識模型 (v1 版本 API)
+  faceMesh = ml5.faceMesh(capture, { maxFaces: 1 }, modelReady);
 }
 
 function modelReady() {
   // 模型載入完成後開始偵測
-  faceLandmarks.detectStart(capture, gotFaces);
+  faceMesh.detectStart(capture, gotFaces);
 }
 
 function gotFaces(results) {
@@ -48,18 +48,18 @@ function draw() {
   image(capture, 0, 0, displayW, displayH);
 
   // 如果辨識到臉部，則繪製耳垂位置
-  if (faces.length > 0) {
+  if (faces && faces.length > 0) {
     let face = faces[0];
 
-    // 取得耳垂關鍵點 (177 為右耳垂區域，401 為左耳垂區域)
-    let rightLobe = face.keypoints[177];
-    let leftLobe = face.keypoints[401];
+    // 確保關鍵點存在
+    if (face.keypoints && face.keypoints.length > 401) {
+      // 取得耳垂關鍵點 (177 為右耳垂區域，401 為左耳垂區域)
+      let rightLobe = face.keypoints[177];
+      let leftLobe = face.keypoints[401];
 
-    fill(255, 255, 0); // 黃色
-    noStroke();
+      fill(255, 255, 0); // 黃色
+      noStroke();
 
-    // 確保攝影機尺寸已讀取，以便進行座標對應 (Mapping)
-    if (capture.width > 0) {
       // 將辨識座標從攝影機解析度對應到畫布上的顯示尺寸
       let rx = map(rightLobe.x, 0, capture.width, 0, displayW);
       let ry = map(rightLobe.y, 0, capture.height, 0, displayH);
