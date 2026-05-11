@@ -4,14 +4,16 @@ let handPose;
 let faces = [];
 let hands = [];
 let earringImages = []; // 儲存多張耳環圖片的陣列
-let currentEarringIndex = 1;  
-let fingerCount = 1// 用於儲存當前手指數量，以便在畫面上顯示
+let currentEarringIndex = 1; // 預設為 1 (acc1_ring.png)
+let fingerCount = 0; // 儲存當前手指數量
 
 let maskImages = []; // 儲存臉譜圖片
 let currentMaskIndex = 0;
 let lastHandX = { 'Left': 0, 'Right': 0 }; // 記錄左右手前一幀的位置
 let swipeThreshold = 50; // 揮動觸發門檻
-let canSwipe = true; // 防止連續觸發開關
+
+// 追蹤模型載入狀態
+let modelsReady = { faceMesh: false, handPose: false };
 
 // preload() 函式會在 setup() 之前執行，用於載入外部資源
 function preload() {
@@ -39,16 +41,27 @@ function setup() {
   capture.hide();
 
   // 初始化 ml5 faceMesh 辨識模型 (v1 版本 API)
-  faceMesh = ml5.faceMesh(capture, { maxFaces: 1 }, modelReady);
+  faceMesh = ml5.faceMesh(capture, { maxFaces: 1 }, () => {
+    console.log('faceMesh 模型已載入');
+    modelsReady.faceMesh = true;
+    startDetectionIfReady();
+  });
 
   // 初始化 ml5 handPose 辨識模型
-  handPose = ml5.handPose(capture, { maxHands: 2 }, modelReady);
+  handPose = ml5.handPose(capture, { maxHands: 2 }, () => {
+    console.log('handPose 模型已載入');
+    modelsReady.handPose = true;
+    startDetectionIfReady();
+  });
 }
 
-function modelReady() {
-  // 當任一模型載入完成後，確保兩者都啟動偵測
-  faceMesh.detectStart(capture, gotFaces);
-  handPose.detectStart(capture, gotHands);
+function startDetectionIfReady() {
+  // 只有在兩個模型都載入完成後才啟動偵測
+  if (modelsReady.faceMesh && modelsReady.handPose) {
+    console.log('開始偵測...');
+    faceMesh.detectStart(capture, gotFaces);
+    handPose.detectStart(capture, gotHands);
+  }
 }
 
 function gotFaces(results) {
@@ -109,8 +122,8 @@ function draw() {
     }
   }
 
-  // 如果辨識到臉部，則繪製耳垂位置
-  if (faces && faces.length > 0 && earringImages[currentEarringIndex]) {
+  // 如果辨識到臉部，則繪製耳垂位置 (預設顯示 acc1_ring.png)
+  if (faces && faces.length > 0) {
     let face = faces[0];
 
     // 確保關鍵點存在
@@ -125,14 +138,20 @@ function draw() {
       let lx = map(leftLobe.x, 0, capture.width, 0, displayW);
       let ly = map(leftLobe.y, 0, capture.height, 0, displayH);
 
-      // 繪製耳環圖片
+      let earringSize = displayW * 0.12; // 根據影像寬度自動調整耳環大小
+
+      // 繪製耳環圖片 (根據手勢識別的手指數量顯示)
       imageMode(CENTER);
-      let earringSize = displayW * 0.08; // 根據影像寬度自動調整耳環大小
       
-      // 繪製目前選擇的耳環圖片
-      let img = earringImages[currentEarringIndex];
-      image(img, rx, ry, earringSize, earringSize);
-      image(img, lx, ly, earringSize, earringSize);
+      // 當偵測到 1-5 根手指時，顯示對應的耳環
+      if (currentEarringIndex >= 1 && currentEarringIndex <= 5) {
+        let img = earringImages[currentEarringIndex];
+        
+        if (img) {
+          image(img, rx, ry, earringSize, earringSize);
+          image(img, lx, ly, earringSize, earringSize);
+        }
+      }
     }
   }
   pop();
@@ -185,36 +204,29 @@ function checkHandSwipe() {
   if (hands && hands.length > 0 && faces.length > 0) {
     let face = faces[0];
     let faceCenterX = face.keypoints[1].x;
+    let faceLeftX = face.keypoints[234].x; // 臉部左邊界
+    let faceRightX = face.keypoints[454].x; // 臉部右邊界
 
     for (let hand of hands) {
       let handX = hand.keypoints[9].x; // 中指根部作為手掌中心點
       let label = hand.handedness; // 'Left' 或 'Right'
 
-      // 如果手從臉的一側移動到另一側
-      if (lastHandX[label] > 0) {
-        // 右手揮過 (下一個)
-        if (label === 'Right' && canSwipe) {
-          if (lastHandX[label] < faceCenterX && handX > faceCenterX) {
-            currentMaskIndex = (currentMaskIndex + 1) % maskImages.length;
-            triggerSwipeCooldown();
-          }
-        }
-        // 左手揮過 (上一個)
-        else if (label === 'Left' && canSwipe) {
-          if (lastHandX[label] > faceCenterX && handX < faceCenterX) {
-            currentMaskIndex = (currentMaskIndex - 1 + maskImages.length) % maskImages.length;
-            triggerSwipeCooldown();
-          }
+      // 檢查手是否在臉部區域內移動
+      let isHandInFaceRegion = handX >= faceLeftX && handX <= faceRightX;
+      let wasHandInFaceRegion = lastHandX[label] >= faceLeftX && lastHandX[label] <= faceRightX;
+
+      // 如果手剛進入臉部區域（從外面進入）
+      if (isHandInFaceRegion && !wasHandInFaceRegion && lastHandX[label] !== 0) {
+        if (label === 'Right') {
+          currentMaskIndex = (currentMaskIndex + 1) % maskImages.length;
+        } else if (label === 'Left') {
+          currentMaskIndex = (currentMaskIndex - 1 + maskImages.length) % maskImages.length;
         }
       }
+
       lastHandX[label] = handX;
     }
   }
-}
-
-function triggerSwipeCooldown() {
-  canSwipe = false;
-  setTimeout(() => { canSwipe = true; }, 500); // 0.5秒冷卻時間，避免重複觸發
 }
 
 function windowResized() {
